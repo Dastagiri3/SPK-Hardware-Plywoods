@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Application user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "admin", "staff"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Brand or manufacturer",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "website": { "type": "string" },
+        "isFeatured": { "type": "boolean" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "parentId": { "type": "string" },
+        "iconUrl": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Hardware or plywood product",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "unit": { "type": "string" },
+        "stockQty": { "type": "number" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "specs": { "type": "object" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["companyId", "categoryId", "name", "price"]
+    },
+    "Catalog": {
+      "title": "Catalog",
+      "description": "Brand catalog PDF",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string" },
+        "title": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "uploadedAt": { "type": "string", "format": "date-time" },
+        "version": { "type": "string" },
+        "pageCount": { "type": "number" }
+      },
+      "required": ["companyId", "title", "fileUrl"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "dispatched", "delivered"] },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "deliveryAddress": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "status", "items", "totalAmount"]
+    },
+    "QuoteRequest": {
+      "title": "QuoteRequest",
+      "description": "Request for a price quote",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "in-review", "sent", "won", "lost"] },
+        "adminNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "items", "status"]
+    },
+    "DesignSuggestion": {
+      "title": "DesignSuggestion",
+      "description": "AI generated design suggestion for a room",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "budget": { "type": "number" },
+        "roomType": { "type": "string" },
+        "suggestionText": { "type": "string" },
+        "interiorOptions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "imageUrl", "budget"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/companies/{companyId}": { "schema": "Company", "description": "Brands" },
+    "/categories/{categoryId}": { "schema": "Category", "description": "Product categories" },
+    "/products/{productId}": { "schema": "Product", "description": "Products" },
+    "/catalogs/{catalogId}": { "schema": "Catalog", "description": "Brand catalogs" },
+    "/orders/{orderId}": { "schema": "Order", "description": "Customer orders" },
+    "/quotes/{quoteId}": { "schema": "QuoteRequest", "description": "Quote requests" },
+    "/designSuggestions/{suggestionId}": { "schema": "DesignSuggestion", "description": "AI design suggestions" }
+  }
+}
