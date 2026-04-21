@@ -13,10 +13,13 @@ import {
   BookOpen
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { db } from '@/lib/firebase';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { AdminQuickActions } from '@/components/AdminQuickActions';
 
-const CATALOGS = [
+const STATIC_CATALOGS = [
   { 
-    id: '1', 
+    id: 's1', 
     company: 'Century Ply', 
     title: 'Architectural Plywood 2024', 
     pages: 48, 
@@ -25,7 +28,7 @@ const CATALOGS = [
     tags: ['Marine', 'BWP', 'Fire Retardant']
   },
   { 
-    id: '2', 
+    id: 's2', 
     company: 'Hettich', 
     title: 'Kitchen Fittings & Hardware', 
     pages: 120, 
@@ -34,7 +37,7 @@ const CATALOGS = [
     tags: ['Kitchen', 'Hinges', 'Drawers']
   },
   { 
-    id: '3', 
+    id: 's3', 
     company: 'Greenply', 
     title: 'Eco-Friendly Collection', 
     pages: 32, 
@@ -43,7 +46,7 @@ const CATALOGS = [
     tags: ['Eco', 'Zero Emission']
   },
   { 
-    id: '4', 
+    id: 's4', 
     company: 'Merino', 
     title: 'Laminates & Surfaces', 
     pages: 84, 
@@ -55,14 +58,34 @@ const CATALOGS = [
 
 export default function Catalog() {
   const [search, setSearch] = React.useState('');
+  const [dbCatalogs, setDbCatalogs] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const filteredCatalogs = CATALOGS.filter(cat => 
+  React.useEffect(() => {
+    fetchDbCatalogs();
+  }, []);
+
+  const fetchDbCatalogs = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'catalogs'), orderBy('uploadedAt', 'desc')));
+      setDbCatalogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allCatalogs = [...dbCatalogs, ...STATIC_CATALOGS];
+
+  const filteredCatalogs = allCatalogs.filter(cat => 
     cat.title.toLowerCase().includes(search.toLowerCase()) || 
     cat.company.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen pt-28 pb-20 bg-slate-50">
+    <div className="min-h-screen pt-28 pb-20 bg-slate-50 relative">
+      <AdminQuickActions type="catalogs" onAdd={fetchDbCatalogs} />
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>

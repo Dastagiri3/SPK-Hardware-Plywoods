@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Github, Mail, Lock, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Auth() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [isAdminLogin, setIsAdminLogin] = React.useState(false);
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
@@ -31,9 +33,20 @@ export default function Auth() {
   const handleEmailAuth = async (type: 'login' | 'register') => {
     setLoading(true);
     try {
+      let userCred;
       if (type === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
-        toast.success('Account created successfully');
+        userCred = await createUserWithEmailAndPassword(auth, email, password);
+        // During registration, we set the role
+        const { doc, setDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        await setDoc(doc(db, 'users', userCred.user.uid), {
+          uid: userCred.user.uid,
+          email: userCred.user.email,
+          name: 'User',
+          role: isAdminLogin ? 'admin' : 'customer',
+          createdAt: new Date().toISOString()
+        });
+        toast.success(`${isAdminLogin ? 'Admin' : 'Customer'} account created successfully`);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         toast.success('Logged in successfully');
@@ -53,10 +66,29 @@ export default function Auth() {
           <div className="w-12 h-12 bg-[#1A3C6E] rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
             S
           </div>
-          <CardTitle className="text-2xl font-bold text-[#1A3C6E]">Welcome to SPK</CardTitle>
-          <CardDescription>Premium Hardware & Plywoods</CardDescription>
+          <CardTitle className="text-2xl font-bold text-[#1A3C6E]">
+            {isAdminLogin ? 'Admin Gateway' : 'Customer Portal'}
+          </CardTitle>
+          <CardDescription>
+            {isAdminLogin ? 'Manage your inventory and catalogs' : 'Premium Hardware & Plywoods'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
+            <button 
+              className={cn("flex-1 py-2 text-sm font-bold rounded-lg transition-all", !isAdminLogin ? "bg-white shadow-sm text-[#1A3C6E]" : "text-slate-500")}
+              onClick={() => setIsAdminLogin(false)}
+            >
+              Customer
+            </button>
+            <button 
+              className={cn("flex-1 py-2 text-sm font-bold rounded-lg transition-all", isAdminLogin ? "bg-[#E67E22] shadow-sm text-white" : "text-slate-500")}
+              onClick={() => setIsAdminLogin(true)}
+            >
+              Admin
+            </button>
+          </div>
+
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login">Login</TabsTrigger>

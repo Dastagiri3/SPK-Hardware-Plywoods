@@ -1,19 +1,17 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
   LayoutGrid, 
   ShoppingCart, 
-  MessageSquare, 
   User, 
   LogOut, 
   Menu, 
-  X,
   Sparkles,
-  ChevronRight
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -24,9 +22,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 export function Navbar() {
   const [user] = useAuthState(auth);
+  const [role, setRole] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = React.useState(false);
 
@@ -35,6 +35,27 @@ export function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  React.useEffect(() => {
+    async function fetchRole() {
+      if (user) {
+        try {
+          const snap = await getDoc(doc(db, 'users', user.uid));
+          if (snap.exists()) {
+            setRole(snap.data().role || 'customer');
+          } else {
+            setRole('customer');
+          }
+        } catch (error) {
+          console.error("Error fetching role:", error);
+          setRole('customer');
+        }
+      } else {
+        setRole(null);
+      }
+    }
+    fetchRole();
+  }, [user]);
 
   const navLinks = [
     { name: 'Catalog', href: '/catalog', icon: LayoutGrid },
@@ -74,25 +95,54 @@ export function Navbar() {
             ))}
             
             <DropdownMenu>
-              <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full")}>
-                  <User className="w-5 h-5" />
-                </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="w-5 h-5 text-[#1A3C6E]" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-56 bg-white border border-slate-200">
+                <DropdownMenuLabel className="text-slate-900">My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-slate-100" />
                 {user ? (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/orders')}>Orders</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/admin')}>Admin Dashboard</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => auth.signOut()} className="text-red-600">
+                    <DropdownMenuItem 
+                      className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                      onClick={() => navigate('/profile')}
+                    >
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                      onClick={() => navigate('/orders')}
+                    >
+                      Orders
+                    </DropdownMenuItem>
+                    {role === 'admin' && (
+                      <DropdownMenuItem 
+                        className="cursor-pointer font-bold text-[#E67E22] hover:bg-orange-50 focus:bg-orange-50"
+                        onClick={() => navigate('/admin')}
+                      >
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator className="bg-slate-100" />
+                    <DropdownMenuItem 
+                      className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50"
+                      onClick={() => auth.signOut()}
+                    >
                       <LogOut className="w-4 h-4 mr-2" />
                       Logout
                     </DropdownMenuItem>
                   </>
                 ) : (
-                  <DropdownMenuItem onClick={() => navigate('/auth')}>Login / Register</DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50"
+                    onClick={() => navigate('/auth')}
+                  >
+                    Login / Register
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -105,9 +155,13 @@ export function Navbar() {
           {/* Mobile Nav */}
           <div className="md:hidden flex items-center gap-4">
             <Sheet>
-              <SheetTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}>
-                  <Menu className="w-6 h-6" />
-                </SheetTrigger>
+              <SheetTrigger
+                render={
+                  <Button variant="ghost" size="icon">
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                }
+              />
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col gap-8 mt-12">
                   {navLinks.map((link) => (
@@ -120,7 +174,7 @@ export function Navbar() {
                       {link.name}
                     </Link>
                   ))}
-                  <DropdownMenuSeparator />
+                  <Separator className="my-4" />
                   {user ? (
                     <Button variant="outline" onClick={() => auth.signOut()} className="justify-start">
                       <LogOut className="w-4 h-4 mr-2" />

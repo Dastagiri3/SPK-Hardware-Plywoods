@@ -7,10 +7,35 @@ import DesignAssistant from '@/pages/DesignAssistant';
 import Auth from '@/pages/Auth';
 import Catalog from '@/pages/Catalog';
 import Products from '@/pages/Products';
+import AdminDashboard from '@/pages/AdminDashboard';
 import { AIAdvisor } from '@/components/AIAdvisor';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ children, roleRequired }: { children: React.ReactNode, roleRequired?: string }) {
+  const [user, loading] = useAuthState(auth);
+  const [role, setRole] = React.useState<string | null>(null);
+  const [fetchingRole, setFetchingRole] = React.useState(true);
+
+  React.useEffect(() => {
+    if (user) {
+      getDoc(doc(db, 'users', user.uid)).then(snap => {
+        setRole(snap.data()?.role || 'customer');
+        setFetchingRole(false);
+      });
+    } else if (!loading) {
+      setFetchingRole(false);
+    }
+  }, [user, loading]);
+
+  if (loading || fetchingRole) return null;
+  if (!user) return <Navigate to="/auth" />;
+  if (roleRequired && role !== roleRequired) return <Navigate to="/" />;
+
+  return <>{children}</>;
+}
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
@@ -21,11 +46,12 @@ export default function App() {
       const userRef = doc(db, 'users', user.uid);
       getDoc(userRef).then((docSnap) => {
         if (!docSnap.exists()) {
+          const isAdminEmail = user.email === 'gurudastagiri3@gmail.com';
           setDoc(userRef, {
             uid: user.uid,
             email: user.email,
             name: user.displayName || 'User',
-            role: 'customer',
+            role: isAdminEmail ? 'admin' : 'customer',
             createdAt: new Date().toISOString()
           });
         }
@@ -55,6 +81,14 @@ export default function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/products" element={<Products />} />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute roleRequired="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
             {/* Add more routes as needed */}
           </Routes>
         </main>

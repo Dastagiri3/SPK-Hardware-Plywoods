@@ -16,15 +16,37 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { AdminQuickActions } from '@/components/AdminQuickActions';
+import { db } from '@/lib/firebase';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = React.useState('');
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+  const [dbProducts, setDbProducts] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
   
   const categoryFilter = searchParams.get('category');
 
-  const filteredProducts = PRODUCTS.filter(product => {
+  React.useEffect(() => {
+    fetchDbProducts();
+  }, []);
+
+  const fetchDbProducts = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
+      setDbProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allProducts = [...dbProducts, ...PRODUCTS];
+
+  const filteredProducts = allProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || 
                          product.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
@@ -32,7 +54,8 @@ export default function Products() {
   });
 
   return (
-    <div className="min-h-screen pt-28 pb-20 bg-slate-50">
+    <div className="min-h-screen pt-28 pb-20 bg-slate-50 relative">
+      <AdminQuickActions type="products" onAdd={fetchDbProducts} />
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
